@@ -21,6 +21,10 @@ namespace BikeSharingSimulation
             
             List<Station> StationList = new List<Station>();
             List<FutureEvent> FutureEventList = new List<FutureEvent>();
+            int MissRequestCount = 0;
+            int HitRequestCount = 0;
+            int RebalancingCount = 0;
+            int NumberOfBikesMoved = 0;
 
             // For each station in the list creat events and add new events to the FutureEventList
             foreach (Station s in StationList) 
@@ -51,15 +55,25 @@ namespace BikeSharingSimulation
                     if (FutureEventList[i].Station.AvailebleBikes > 0)
                         e.EventType = EventType.BikeRentStart;
                     else
-                        e.EventType = EventType.MissRequest;
-                    
+                        MissRequestCount++;
+
+
 
                     FutureEventList.Add(e);
 
                 }
                 else if (FutureEventList[i].EventType == EventType.BikeRentStart)
                 {
-                    FutureEventList[i].Station.AvailebleBikes -= 1;
+                    // If there is no Available Bike then Add Miss Count And go to next event
+                    if (FutureEventList[i].Station.AvailebleBikes < 0) 
+                    {
+                        MissRequestCount++;
+                        continue;
+                    }
+
+                    HitRequestCount++;
+
+                FutureEventList[i].Station.AvailebleBikes -= 1;
 
                     FutureEvent e = new FutureEvent();
                     e.EventType = EventType.BikeRentFinish;
@@ -73,7 +87,7 @@ namespace BikeSharingSimulation
                     if (FutureEventList[i].Station.AvailebleBikes <= 0)
                     {
                         FutureEvent re = new FutureEvent();
-                        re.EventType = EventType.RebalancingRequest;
+                        re.EventType = EventType.Rebalancing ;
                         re.Station = FutureEventList[i].Station;
                         re.StartTime = FutureEventList[i].StartTime;
                         FutureEventList.Add(re);
@@ -87,36 +101,33 @@ namespace BikeSharingSimulation
                     if (FutureEventList[i].Station.AvailebleBikes >= FutureEventList[i].Station.Capasity)
                     {
                         FutureEvent re = new FutureEvent();
-                        re.EventType = EventType.RebalancingRequest;
+                        re.EventType = EventType.Rebalancing;
                         re.Station = FutureEventList[i].Station;
                         re.StartTime = FutureEventList[i].StartTime;
                         FutureEventList.Add(re);
                     }
 
                 }
-                else if (FutureEventList[i].EventType == EventType.RebalancingStart)
+                else if (FutureEventList[i].EventType == EventType.Rebalancing)
                 {
                     //?? Reblancing To which stations should be done? one station or multiple station ?
                     //e.StartTime = DateTime.Now;  // #### distance and duration to next station Should be determined in here 
                     //e.Distance = 0;  // #### distance and duration to next station Should be determined in here 
 
-                    FutureEvent e = new FutureEvent();
-                    e.EventType = EventType.RebalancingEnd;
-                    int duration = 0;
-                    float distance = 0;
+                    RebalancingCount++;
+                    NumberOfBikesMoved++;
 
-                    e.Distance = distance;
-                    e.Duration = duration;
-                    e.StartTime = FutureEventList[i].StartTime.AddTicks(duration);
-                    FutureEventList.Add(e);
-                }
-                if (FutureEventList[i].EventType == EventType.RebalancingEnd)
-                {
-                    FutureEventList[i].Station.AvailebleBikes += 1; // ?? How many bikes should be added to the station ?
-                    FutureEventList[i].Duration = 0;
-                    FutureEventList[i].Distance = 0;
+                    //FutureEvent e = new FutureEvent();
+                    //e.EventType = EventType.RebalancingEnd;
+                    //int duration = 0;
+                    //float distance = 0;
 
+                    //e.Distance = distance;
+                    //e.Duration = duration;
+                    //e.StartTime = FutureEventList[i].StartTime.AddTicks(duration);
+                    //FutureEventList.Add(e);
                 }
+               
 
             }
 
@@ -133,12 +144,9 @@ namespace BikeSharingSimulation
     public enum EventType
     {
         CustomerRequest,
-        MissRequest,
         BikeRentStart,
         BikeRentFinish,
-        RebalancingRequest,
-        RebalancingStart,
-        RebalancingEnd
+        Rebalancing,
     }
 
     class FutureEvent
